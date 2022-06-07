@@ -1,0 +1,5 @@
+services:
+  web:
+    image: golang:18.3-alpine
+    ports:
+      - "8001:3000"
