@@ -1,5 +1,8 @@
 services:
-  web:
-    image: golang:18.3-alpine
+  server:
+    env_file: .env
+    build: .
     ports:
-      - "8001:3000"
+      - "80:8080"
+    volumes:
+      - ./GO:/app
