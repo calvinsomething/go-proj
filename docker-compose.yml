@@ -1,8 +1,15 @@
 services:
   server:
     env_file: .env
-    build: .
+    build: ./server
     ports:
-      - "80:8080"
+      - "8080:8080"
     volumes:
-      - ./GO:/app
+      - ./server:/app
+  client:
+    env_file: .env
+    build: ./client
+    ports:
+      - "80:3000"
+    volumes:
+      - ./client:/app
