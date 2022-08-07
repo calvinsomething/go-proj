@@ -8,10 +8,6 @@ import (
 	"testing"
 )
 
-const (
-	root = "localhost:8080"
-)
-
 var tests = []struct{
 	method string
 	route string

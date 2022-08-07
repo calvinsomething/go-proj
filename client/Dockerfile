@@ -1,8 +1,7 @@
-FROM node:18-alpine3.15
-RUN adduser --system app
-USER app
+FROM node:16-alpine3.15
+# Rename node user
+RUN sed -i 's/node:/client:/' /etc/passwd /etc/group /etc/shadow
 WORKDIR /app
-COPY package*.json .
-RUN npm i
+USER client
 EXPOSE 3000
 CMD ["npm", "start"]

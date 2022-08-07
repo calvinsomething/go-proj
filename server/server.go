@@ -54,7 +54,7 @@ func (m *mux_t) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Middleware
 func logger(w http.ResponseWriter, r *http.Request) {
-	log.Println("LOGGING:", r.URL.Path)
+	log.Println(r.URL.Path, r.Header)
 }
 
 // temp...
