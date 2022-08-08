@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Button from "@mui/material/Button";
 
 function Home() {
   const [data, setData] = useState<any>(null);
@@ -11,7 +12,7 @@ function Home() {
       });
   }, []);
 
-  return <p>{data}</p>;
+  return <Button variant="contained">{data}</Button>;
 }
 
 export default Home;
