@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/calvinsomething/go-proj/db"
 )
 
 var (
@@ -24,9 +26,12 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	_port = os.Getenv("GO_PORT")
+
+	db.Initialize()
 }
 
 func main() {
+	db.Ping()
 	log.Printf("Listening on port %s...\n", _port)
 	log.Fatal(http.ListenAndServe(":"+_port, newMux()))
 }
