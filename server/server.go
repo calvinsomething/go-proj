@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	_port string
+	host_port string
 )
 
 type (
@@ -25,14 +25,14 @@ type (
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	_port = os.Getenv("GO_PORT")
+	host_port = os.Getenv("SERVER_PORT")
 }
 
 func main() {
 	db.Initialize()
 	
-	log.Printf("Listening on port %s...\n", _port)
-	log.Fatal(http.ListenAndServe(":"+_port, newMux()))
+	log.Printf("Listening on port %s...\n", host_port)
+	log.Fatal(http.ListenAndServe(":8080", newMux()))
 }
 
 // Custom Mux
