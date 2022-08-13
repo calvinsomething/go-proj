@@ -26,12 +26,11 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	_port = os.Getenv("GO_PORT")
-
-	db.Initialize()
 }
 
 func main() {
-	db.Ping()
+	db.Initialize()
+	
 	log.Printf("Listening on port %s...\n", _port)
 	log.Fatal(http.ListenAndServe(":"+_port, newMux()))
 }

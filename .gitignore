@@ -1,2 +1,9 @@
+# Environment
 **/*.env
+
+# Dependencies
 **/node_modules
+**/vendor
+
+# Data
+data/

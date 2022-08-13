@@ -8,12 +8,12 @@ import (
 	"testing"
 )
 
-var tests = []struct{
-	method string
-	route string
-	body io.Reader
+var tests = []struct {
+	method  string
+	route   string
+	body    io.Reader
 	handler handler_t
-	want string
+	want    string
 }{
 	{"GET", "/data", nil, dataHandler, "hi"},
 }
@@ -23,7 +23,7 @@ func TestRoutes(t *testing.T) {
 	defer ts.Close()
 
 	for _, tc := range tests {
-		t.Run(tc.route, func (t *testing.T) {
+		t.Run(tc.route, func(t *testing.T) {
 			req, err := http.NewRequest(tc.method, ts.URL+tc.route, tc.body)
 			if err != nil {
 				t.Fatal(err.Error())
@@ -46,4 +46,3 @@ func TestRoutes(t *testing.T) {
 		})
 	}
 }
-
