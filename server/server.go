@@ -25,7 +25,13 @@ type (
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
+	// Server
 	host_port = os.Getenv("SERVER_PORT")
+
+	// DB
+	db.PORT = os.Getenv("DB_PORT")
+	db.USER = os.Getenv("DB_USER")
+	db.PASSWORD = os.Getenv("DB_PASSWORD")
 }
 
 func main() {
