@@ -1,6 +1,6 @@
 FROM node:16-alpine3.15
-# Rename node user
-RUN sed -i 's/node:/client:/' /etc/passwd /etc/group /etc/shadow
+RUN deluser --remove-home node
+RUN adduser --uid 1000 -D client
 WORKDIR /app
 USER client
 EXPOSE 3000

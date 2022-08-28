@@ -36,6 +36,15 @@ func init() {
 
 func main() {
 	db.Initialize()
+	defer db.CleanUp()
+
+	if err := db.Up(db.Players, "players"); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := db.Test(db.Players); err != nil {
+		log.Fatal(err)
+	}
 	
 	log.Printf("Listening on port %s...\n", host_port)
 	log.Fatal(http.ListenAndServe(":8080", newMux()))
