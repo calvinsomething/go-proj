@@ -14,109 +14,87 @@ import (
 )
 
 var (
-	USER string
+	USER     string
 	PASSWORD string
-	PORT string
+	PORT     string
+	NAME     string
 
-	Players *sql.DB
-	dbs = []**sql.DB{&Players}
-	dbNames = []string{"players"}
+	Pool *sql.DB
 )
 
 func Initialize() {
-	for i, dbName := range dbNames {
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(db:%s)/%s?multiStatements=true",
-			USER,
-			PASSWORD,
-			PORT,
-			dbName,
-		))
-		if err != nil {
-			log.Fatalln(err)
-		}
-		*dbs[i] = db
-
-		start := time.Now()
-		for {
-			if err := db.Ping(); err == nil {
-				break
-			} else if time.Since(start) > 30*time.Second {
-				log.Println(err)
-				CleanUp()
-				os.Exit(1)
-			}
-		}
-		log.Printf("Connected to %s...\n", dbName)
-	}
-}
-
-func CleanUp() {
-	log.Println("Closing all db connections...")
-	for _, db := range dbs {
-		(*db).Close()
-	}
-}
-
-func Up(db *sql.DB, dbName string) error {
-    driver, err := mysql.WithInstance(db, &mysql.Config{})
+	var err error
+	Pool, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(db:%s)/%s?multiStatements=true",
+		USER,
+		PASSWORD,
+		PORT,
+		NAME,
+	))
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
 
-    m, err := migrate.NewWithDatabaseInstance(
-        fmt.Sprintf("file://db/migrations/%s", dbName),
-        "mysql",
-        driver,
-    )
-	if err != nil {
-		return err
-	}
+	log.Println("SQL OPENED@!!", fmt.Sprintf("%s:%s@tcp(db:%s)/%s?multiStatements=true",
+	USER,
+	PASSWORD,
+	PORT,
+	NAME,
+))
 
-	return m.Up()
+	start := time.Now()
+	for {
+		if err = Pool.Ping(); err == nil {
+			break
+		} else if time.Since(start) > 30*time.Second {
+			Pool.Close()
+			log.Println(err)
+			os.Exit(1)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	log.Printf("Connected to database %s...\n", NAME)
 }
 
-func Down(db *sql.DB, dbName string) error {
+func Migrate(db *sql.DB, down ...bool) error {
 	driver, err := mysql.WithInstance(db, &mysql.Config{})
 	if err != nil {
 		return err
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-        fmt.Sprintf("file://db/migrations/%s", dbName),
-        "mysql", 
-        driver,
-    )
+		fmt.Sprintf("file://db/migrations"),
+		"mysql",
+		driver,
+	)
 	if err != nil {
 		return err
 	}
 
-	return m.Down()
+	if len(down) != 0 {
+		if down[0] {
+			return m.Down()
+		}
+	}
+
+	return m.Up()
 }
 
 func Test(db *sql.DB) error {
-	_, err := db.Exec(`
-		INSERT INTO test
-		values (1, 2, 3, 4)
-	`)
-
-	if err != nil {
-		return err
-	}
-
-	rows, err := db.Query("select * from test")
+	rows, err := db.Query("select * from players")
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var o, t, h, f int
+		var i, h int
+		var f, r, c, p1, p2 string
 
-		if err = rows.Scan(&o, &t, &h, &f); err != nil {
+		if err = rows.Scan(&i, &f, &r, &c, &p1, &p2, &h); err != nil {
 			return err
 		}
 
-		log.Println(o, t, h, f)
+		log.Println(i, f, r, c, p1, p2, h)
 	}
 
 	return nil

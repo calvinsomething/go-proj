@@ -3,16 +3,20 @@ import Button from "@mui/material/Button";
 import Popper from "@mui/material/Popper";
 
 function Home() {
+  const needsFetch = useRef(true);
   const [data, setData] = useState<any>(null);
   const [popper, setPopper] = useState<boolean>(false);
   const ref = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    fetch("/data")
-      .then((resp) => resp.text())
-      .then((data) => {
-        setData(data);
-      });
+    if (needsFetch.current) {
+      needsFetch.current = false;
+      fetch("/data")
+        .then((resp) => resp.text())
+        .then((data) => {
+          setData(data);
+        });
+    }
   }, []);
 
   return (

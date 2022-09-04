@@ -32,22 +32,48 @@ func init() {
 	db.PORT = os.Getenv("DB_PORT")
 	db.USER = os.Getenv("DB_USER")
 	db.PASSWORD = os.Getenv("DB_PASSWORD")
+	db.NAME = os.Getenv("DB_NAME")
 }
 
 func main() {
 	db.Initialize()
-	defer db.CleanUp()
+	defer db.Pool.Close()
 
-	if err := db.Up(db.Players, "players"); err != nil {
-		log.Fatal(err)
-	}
+	execArgs()
 
-	if err := db.Test(db.Players); err != nil {
-		log.Fatal(err)
-	}
-	
 	log.Printf("Listening on port %s...\n", host_port)
 	log.Fatal(http.ListenAndServe(":8080", newMux()))
+}
+
+func execArgs() {
+	i := 1
+	shouldExit := false
+	for len(os.Args) > i {
+		switch os.Args[i] {
+		case "migrate":
+			i++
+			if len(os.Args) > i {
+				if os.Args[i] == "up" {
+					log.Println("Migrating database up...")
+					if err := db.Migrate(db.Pool); err != nil {
+						log.Fatal(err)
+					}
+				} else if os.Args[i] == "down" {
+					log.Println("Migrating database down...")
+					if err := db.Migrate(db.Pool, true); err != nil {
+						log.Fatal(err)
+					}
+					shouldExit = true
+				}
+			}
+		default:
+			log.Fatalf("unknown command line argument: '%s'", os.Args[i])
+		}
+		i++
+	}
+	if shouldExit {
+		os.Exit(0)
+	}
 }
 
 // Custom Mux
@@ -89,5 +115,9 @@ func errHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dataHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hi"))
+	if err := db.Test(db.Pool); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("REMOTE=", r.RemoteAddr)
+	w.Write([]byte("hiya"))
 }
