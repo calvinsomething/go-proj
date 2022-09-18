@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -14,17 +15,29 @@ import (
 )
 
 var (
-	USER     string
-	PASSWORD string
-	PORT     string
-	NAME     string
-
-	Pool *sql.DB
+	Pool ConnectionPool
 )
 
-func Initialize() {
+type (
+	ConnectionPool struct {
+		*sql.DB
+	}
+
+	Logger struct {
+		*log.Logger
+		verbose bool
+	}
+)
+
+// Verbose is a method for implementing migrate.Logger.
+func (l Logger) Verbose() bool {
+	return l.verbose
+}
+
+// Initialize connects the database and pings to confirm.
+func Initialize(USER, PASSWORD, PORT, NAME string) {
 	var err error
-	Pool, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(db:%s)/%s?multiStatements=true",
+	pool, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(db:%s)/%s?multiStatements=true",
 		USER,
 		PASSWORD,
 		PORT,
@@ -33,13 +46,14 @@ func Initialize() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	Pool = ConnectionPool{pool}
 
-	log.Println("SQL OPENED@!!", fmt.Sprintf("%s:%s@tcp(db:%s)/%s?multiStatements=true",
-	USER,
-	PASSWORD,
-	PORT,
-	NAME,
-))
+	fmt.Printf("%s:%s@tcp(db:%s)/%s?multiStatements=true\n",
+		USER,
+		PASSWORD,
+		PORT,
+		NAME,
+	)
 
 	start := time.Now()
 	for {
@@ -55,17 +69,29 @@ func Initialize() {
 	log.Printf("Connected to database %s...\n", NAME)
 }
 
-func Migrate(db *sql.DB, down ...bool) error {
-	driver, err := mysql.WithInstance(db, &mysql.Config{})
+func (p *ConnectionPool) getMigrateInstance() (*migrate.Migrate, error) {
+	driver, err := mysql.WithInstance(p.DB, &mysql.Config{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		fmt.Sprintf("file://db/migrations"),
+		"file://db/migrations",
 		"mysql",
 		driver,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	m.Log = Logger{log.Default(), true}
+
+	return m, nil
+}
+
+// Migrate runs all migrations up, or down if the down param is true.
+func (p *ConnectionPool) Migrate(down ...bool) error {
+	m, err := p.getMigrateInstance()
 	if err != nil {
 		return err
 	}
@@ -79,23 +105,43 @@ func Migrate(db *sql.DB, down ...bool) error {
 	return m.Up()
 }
 
-func Test(db *sql.DB) error {
-	rows, err := db.Query("select * from players")
+// MigrateSteps takes a signed int and migrates up or down the number of steps passed in.
+func (p *ConnectionPool) MigrateSteps(steps int) error {
+	m, err := p.getMigrateInstance()
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var i, h int
-		var f, r, c, p1, p2 string
+	return m.Steps(steps)
+}
 
-		if err = rows.Scan(&i, &f, &r, &c, &p1, &p2, &h); err != nil {
-			return err
-		}
+func Test() {
+	_, err := Pool.Exec(`
+		INSERT INTO players
+		values ('123451234', 'A', 'gnome', 'warlock', 'tailoring', null, 5)
+	`)
 
-		log.Println(i, f, r, c, p1, p2, h)
+	if err != nil {
+		log.Println("ERRR", err)
 	}
+}
 
+type ErrNoAffect struct {
+	s string
+}
+
+func (e *ErrNoAffect) Error() string {
+	return e.s
+}
+
+func (p *ConnectionPool) MustAffect(ctx context.Context, stmt string, args ...interface{}) error {
+	res, err := p.ExecContext(ctx, stmt, args...)
+	if err != nil {
+		return err
+	} else if ra, err := res.RowsAffected(); err != nil {
+		return err
+	} else if ra == 0 {
+		return &ErrNoAffect{"no rows affected"}
+	}
 	return nil
 }
