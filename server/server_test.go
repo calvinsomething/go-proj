@@ -12,7 +12,7 @@ var tests = []struct {
 	method  string
 	route   string
 	body    io.Reader
-	handler handlerT
+	handler http.HandlerFunc
 	want    string
 }{
 	{"GET", "/data", nil, dataHandler, "hi"},

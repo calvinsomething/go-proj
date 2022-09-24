@@ -185,7 +185,15 @@ func LogIn(ctx context.Context, email, password string) (string, error) {
 
 	u := &User{Email: email}
 
-	return createSession(ctx, u)
+	sid, err := createSession(ctx, u)
+	if err != nil {
+		return "", err
+	}
+
+	var cookie []byte
+	base64.StdEncoding.Encode(cookie, []byte(sid))
+
+	return string(cookie), nil
 }
 
 func createSession(ctx context.Context, u *User) (string, error) {

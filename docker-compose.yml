@@ -8,7 +8,7 @@ services:
       - ./server:/app
     depends_on:
       - db
-    command: ./wait-for db:3306 -t 30 -- go run . | tee -a logs.txt
+    command: ./wait-for db:3306 -t 30 -- go run . 2>&1 | tee -a logs.txt
 
   client:
     env_file: .env
