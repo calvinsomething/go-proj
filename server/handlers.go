@@ -1,29 +1,34 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
 
 	"github.com/calvinsomething/go-proj/auth"
 	"github.com/calvinsomething/go-proj/db"
+	"github.com/calvinsomething/go-proj/models"
+	"github.com/go-playground/validator/v10"
 )
 
-type player struct {
-	IP          string         `json:"ip"`
-	Faction     string         `json:"faction"`
-	Race        string         `json:"race"`
-	Class       string         `json:"class"`
-	Profession1 sql.NullString `json:"profession1"`
-	Profession2 sql.NullString `json:"profession2"`
-	WeeklyHours int            `json:"weeklyHours"`
-}
+type (
+	login struct {
+		Email    string `json:"email" validate:"email"`
+		Password string `json:"password" validate:"min=8,max=20,password"`
+	}
+)
 
-type login struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+func validateStruct(s interface{}) error {
+	if err := validate.Struct(s); err != nil {
+		var msg string
+		for _, err := range err.(validator.ValidationErrors) {
+			msg += err.Error()
+		}
+		return errors.New(msg)
+	}
+	return nil
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +45,11 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err = json.Unmarshal(body, &login); err != nil {
 		httpErr(w, 400, err)
+		return
+	}
+
+	if err = validate.Struct(&login); err != nil {
+		httpErr(w, 400, err, err.Error())
 		return
 	}
 
@@ -74,10 +84,10 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	players := make([]player, 0, 5)
+	players := make([]models.Player, 0, 5)
 
 	for rows.Next() {
-		var p player
+		var p models.Player
 		err := rows.Scan(&p.IP, &p.Faction, &p.Race, &p.Class, &p.Profession1, &p.Profession2, &p.WeeklyHours)
 		if err != nil {
 			httpErr(w, 500, err)

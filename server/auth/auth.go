@@ -12,8 +12,10 @@ import (
 	"errors"
 	"log"
 	"math/rand"
+	"reflect"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 
 	"github.com/calvinsomething/go-proj/db"
@@ -51,6 +53,39 @@ type (
 		Email string
 	}
 )
+
+// PasswordValidator checks the password string for at least one lower, upper, digit and symbol character.
+func PasswordValidator(fl validator.FieldLevel) bool {
+	if fl.Field().Kind() != reflect.String {
+		return false
+	}
+
+	var hasLower, hasUpper, hasSym, hasDigit bool
+
+	am1, zp1, AM1, ZP1, d0m1, d9p1 :=
+		int('a')-1, int('z')+1, int('A')-1, int('Z')+1, int('0')-1, int('9')+1
+
+	for _, r := range fl.Field().String() {
+		ir := int(r)
+		if ir > 127 {
+			// string is not ascii
+			return false
+		} else if ir > am1 && ir < zp1 {
+			hasLower = true
+		} else if ir > AM1 && ir < ZP1 {
+			hasUpper = true
+		} else if ir > d0m1 && ir < d9p1 {
+			hasDigit = true
+		} else {
+			hasSym = true
+		}
+		if hasLower && hasUpper && hasSym && hasDigit {
+			return true
+		}
+	}
+
+	return false
+}
 
 func randBytes(len int) []byte {
 	bytes := make([]byte, len)

@@ -7,11 +7,16 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/go-playground/validator/v10"
+
+	"github.com/calvinsomething/go-proj/auth"
 	"github.com/calvinsomething/go-proj/db"
 )
 
 var (
 	hostPort string
+
+	validate *validator.Validate
 )
 
 func main() {
@@ -23,6 +28,8 @@ func main() {
 	defer db.Pool.Close()
 
 	execArgs()
+	validate = validator.New()
+	validate.RegisterValidation("password", auth.PasswordValidator)
 
 	middleware := []http.HandlerFunc{
 		logger,

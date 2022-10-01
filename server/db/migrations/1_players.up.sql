@@ -11,3 +11,25 @@ CREATE TABLE players (
     UNIQUE (ip),
     CHECK (profession2 != profession1)
 );
+
+DELIMITER |
+
+CREATE TRIGGER tr_ins_fac BEFORE INSERT ON players
+FOR EACH ROW
+BEGIN
+    IF NEW.race IN ('dwarf', 'gnome', 'human', 'night elf')
+    THEN SET NEW.faction = 'A';
+    ELSE SET NEW.faction = 'H';
+    END IF;
+END;|
+
+CREATE TRIGGER tr_up_fac BEFORE UPDATE ON players
+FOR EACH ROW
+BEGIN
+    IF NEW.race IN ('dwarf', 'gnome', 'human', 'night elf')
+    THEN SET NEW.faction = 'A';
+    ELSE SET NEW.faction = 'H';
+    END IF;
+END;$$
+
+DELIMITER ;
