@@ -1,38 +1,36 @@
 import React, { useEffect, useState, useRef } from "react";
-import Button from "@mui/material/Button";
-import Popper from "@mui/material/Popper";
+import Typography from "@mui/material/Typography";
+
+import PlayerForm from "../components/PlayerForm";
+import Grid from "@mui/material/Grid";
 
 function Home() {
-  const needsFetch = useRef(true);
-  const [data, setData] = useState<any>(null);
-  const [popper, setPopper] = useState<boolean>(false);
-  const ref = useRef<HTMLButtonElement | null>(null);
+  const loaded = useRef(false);
+  const [playersData, setPlayersData] = useState<any>(null);
 
   useEffect(() => {
-    if (needsFetch.current) {
-      needsFetch.current = false;
-      fetch("/data")
+    if (!loaded.current) {
+      loaded.current = true;
+      fetch("/players")
         .then((resp) => resp.text())
         .then((data) => {
-          setData(data);
+          setPlayersData(data);
         });
     }
   }, []);
 
   return (
-    <>
-      <Button
-        variant="contained"
-        color="secondary"
-        onClick={() => setPopper(true)}
-        ref={ref}
-      >
-        {data}
-      </Button>
-      <Popper anchorEl={ref.current} open={popper}>
-        POPPER CONTENTS
-      </Popper>
-    </>
+    <Grid
+      container
+      sx={{ width: "90%", border: "solid 2px orange", p: 2, borderRadius: 4 }}
+    >
+      <Grid item xs={12} sm={8}>
+        <Typography>{playersData}</Typography>
+      </Grid>
+      <Grid item xs={12} sm={4}>
+        <PlayerForm />
+      </Grid>
+    </Grid>
   );
 }
 

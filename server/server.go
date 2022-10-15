@@ -36,7 +36,8 @@ func main() {
 	}
 	m := newMux(middleware...)
 
-	m.get("/data", dataHandler)
+	m.get("/players", getPlayersHandler)
+	m.post("/player", addPlayerHandler)
 	m.post("/login", loginHandler)
 	m.post("/register", registerHandler)
 
@@ -94,6 +95,23 @@ func httpErr(w http.ResponseWriter, statusCode int, err error, msg ...string) {
 	if len(msg) != 0 {
 		w.Write([]byte(msg[0]))
 	}
+}
+
+func validationErr(w http.ResponseWriter, err error) {
+	if _, ok := err.(*validator.InvalidValidationError); ok {
+		log.Output(2, err.Error())
+		w.WriteHeader(500)
+		w.Write([]byte("invalid validation error"))
+		return
+	}
+
+	var msg string
+	for _, err := range err.(validator.ValidationErrors) {
+		msg += err.Error()
+	}
+	log.Output(2, msg)
+	w.WriteHeader(400)
+	w.Write([]byte(msg))
 }
 
 func returnJSON(w http.ResponseWriter, data interface{}) {

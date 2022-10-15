@@ -15,7 +15,7 @@ var tests = []struct {
 	handler http.HandlerFunc
 	want    string
 }{
-	{"GET", "/data", nil, dataHandler, "hi"},
+	{"GET", "/players", nil, getPlayersHandler, "hi"},
 }
 
 func TestRoutes(t *testing.T) {

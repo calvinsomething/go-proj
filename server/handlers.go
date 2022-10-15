@@ -2,15 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
-	"log"
 	"net/http"
+	"strings"
 
 	"github.com/calvinsomething/go-proj/auth"
 	"github.com/calvinsomething/go-proj/db"
 	"github.com/calvinsomething/go-proj/models"
-	"github.com/go-playground/validator/v10"
 )
 
 type (
@@ -19,17 +17,6 @@ type (
 		Password string `json:"password" validate:"min=8,max=20,password"`
 	}
 )
-
-func validateStruct(s interface{}) error {
-	if err := validate.Struct(s); err != nil {
-		var msg string
-		for _, err := range err.(validator.ValidationErrors) {
-			msg += err.Error()
-		}
-		return errors.New(msg)
-	}
-	return nil
-}
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -49,7 +36,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = validate.Struct(&login); err != nil {
-		httpErr(w, 400, err, err.Error())
+		validationErr(w, err)
 		return
 	}
 
@@ -76,7 +63,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func dataHandler(w http.ResponseWriter, r *http.Request) {
+func getPlayersHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Pool.QueryContext(r.Context(), `SELECT * FROM players`)
 	if err != nil {
 		httpErr(w, 500, err)
@@ -97,6 +84,42 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	returnJSON(w, players)
+}
+
+func addPlayerHandler(w http.ResponseWriter, r *http.Request) {
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		httpErr(w, 400, err)
+		return
+	}
+
+	var player models.Player
+	if err = json.Unmarshal(payload, &player); err != nil {
+		httpErr(w, 400, err, "problem reading player data")
+		return
+	}
+
+	if err = validate.Struct(&player); err != nil {
+		validationErr(w, err)
+		return
+	}
+
+	player.IP = r.RemoteAddr[:strings.LastIndexByte(r.RemoteAddr, ':')]
+
+	ctx := r.Context()
+
+	if err = player.Save(ctx); err != nil {
+		httpErr(w, 500, err, "could not save player data")
+		return
+	}
+
+	savedPlayer, err := models.GetPlayer(ctx, player.IP)
+	if err != nil {
+		httpErr(w, 500, err, "could not retrieve saved player")
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	returnJSON(w, &savedPlayer)
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
@@ -120,16 +143,4 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// temp...
-func errHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(400)
-	encoder := json.NewEncoder(w)
-	err := encoder.Encode(struct {
-		Err string
-	}{"test err"})
-	if err != nil {
-		log.Println(err)
-	}
 }

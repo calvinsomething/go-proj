@@ -3,26 +3,29 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // driver for db
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // required for migration files to be used
 )
 
 var (
+	// Pool is the db connection pool to be used for all db actions.
 	Pool ConnectionPool
 )
 
 type (
+	// ConnectionPool is a wrapper for sql.DB with extra methods.
 	ConnectionPool struct {
 		*sql.DB
 	}
-
+	// Logger is an exported logger for use with the migrate package.
 	Logger struct {
 		*log.Logger
 		verbose bool
@@ -46,14 +49,13 @@ func Initialize(USER, PASSWORD, PORT, NAME string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	Pool = ConnectionPool{pool}
 
-	fmt.Printf("%s:%s@tcp(db:%s)/%s?multiStatements=true\n",
-		USER,
-		PASSWORD,
-		PORT,
-		NAME,
-	)
+	pool.SetMaxOpenConns(20)
+	pool.SetMaxIdleConns(20)
+	pool.SetConnMaxLifetime(3 * time.Minute)
+	pool.SetConnMaxIdleTime(30 * time.Second)
+
+	Pool = ConnectionPool{pool}
 
 	start := time.Now()
 	for {
@@ -111,29 +113,13 @@ func (p *ConnectionPool) MigrateSteps(steps int) error {
 	if err != nil {
 		return err
 	}
-
 	return m.Steps(steps)
 }
 
-func Test() {
-	_, err := Pool.Exec(`
-		INSERT INTO players
-		values ('123451234', 'A', 'gnome', 'warlock', 'tailoring', null, 5)
-	`)
+// ErrNoEffect is returned by MustAffect when 0 rows are affected.
+var ErrNoEffect = errors.New("db statement affected 0 rows")
 
-	if err != nil {
-		log.Println("ERRR", err)
-	}
-}
-
-type ErrNoAffect struct {
-	s string
-}
-
-func (e *ErrNoAffect) Error() string {
-	return e.s
-}
-
+// MustAffect uses ExecContext and returns an error if the number of rows affected is 0.
 func (p *ConnectionPool) MustAffect(ctx context.Context, stmt string, args ...interface{}) error {
 	res, err := p.ExecContext(ctx, stmt, args...)
 	if err != nil {
@@ -141,7 +127,7 @@ func (p *ConnectionPool) MustAffect(ctx context.Context, stmt string, args ...in
 	} else if ra, err := res.RowsAffected(); err != nil {
 		return err
 	} else if ra == 0 {
-		return &ErrNoAffect{"no rows affected"}
+		return ErrNoEffect
 	}
 	return nil
 }

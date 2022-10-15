@@ -27,6 +27,10 @@ func newMux(middleware ...http.HandlerFunc) *mux {
 	}
 }
 
+var invalidMethod = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusMethodNotAllowed)
+})
+
 func (m *mux) post(route string, handler http.HandlerFunc) {
 	if r, ok := m.routes[route]; ok {
 		r.post = handler
@@ -61,6 +65,13 @@ func (m *mux) delete(route string, handler http.HandlerFunc) {
 
 func (m *mux) ListenAndServe(addr string) error {
 	for k, v := range m.routes {
+		// all unassigned request methods should return status 405
+		for _, h := range []*http.HandlerFunc{&v.get, &v.put, &v.post, &v.delete} {
+			if h == nil {
+				*h = invalidMethod
+			}
+		}
+		// assign each route to a methodRouter
 		m.HandleFunc(k, routeByMethod(k, v))
 	}
 	return http.ListenAndServe(addr, m)
@@ -84,7 +95,8 @@ func routeByMethod(route string, router methodRouter) http.HandlerFunc {
 			router.post(w, r)
 		case "DELETE":
 			router.delete(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
-		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }

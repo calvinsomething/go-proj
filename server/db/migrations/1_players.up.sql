@@ -1,5 +1,4 @@
 -- TODO: add preferred language, irl_region with options
-
 CREATE TABLE players (
     ip VARCHAR(51) NOT NULL,
     faction ENUM('H', 'A') NOT NULL,
@@ -12,8 +11,6 @@ CREATE TABLE players (
     CHECK (profession2 != profession1)
 );
 
-DELIMITER |
-
 CREATE TRIGGER tr_ins_fac BEFORE INSERT ON players
 FOR EACH ROW
 BEGIN
@@ -21,7 +18,7 @@ BEGIN
     THEN SET NEW.faction = 'A';
     ELSE SET NEW.faction = 'H';
     END IF;
-END;|
+END;
 
 CREATE TRIGGER tr_up_fac BEFORE UPDATE ON players
 FOR EACH ROW
@@ -30,6 +27,4 @@ BEGIN
     THEN SET NEW.faction = 'A';
     ELSE SET NEW.faction = 'H';
     END IF;
-END;$$
-
-DELIMITER ;
+END;

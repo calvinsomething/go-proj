@@ -30,3 +30,4 @@ services:
     volumes:
       - ./data:/var/lib/mysql
     restart: always
+    command: ["--log_bin_trust_function_creators=1"]

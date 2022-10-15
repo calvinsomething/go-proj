@@ -11,11 +11,11 @@ type (
 	Player struct {
 		IP          string  `json:"ip"`
 		Faction     string  `json:"faction"`
-		Race        string  `json:"race"`
-		Class       string  `json:"class"`
-		Profession1 *string `json:"profession1"`
-		Profession2 *string `json:"profession2"`
-		WeeklyHours *int    `json:"weeklyHours"`
+		Race        string  `json:"race" validate:"oneof=dwarf gnome human night elf orc tauren troll undead"`
+		Class       string  `json:"class" validate:"oneof=druid hunter mage paladin priest rogue shaman warlock warrior"`
+		Profession1 *string `json:"profession1" validate:"oneof=alchemy blacksmithing enchanting engineering herbalism mining tailoring"`
+		Profession2 *string `json:"profession2" validate:"oneof=alchemy blacksmithing enchanting engineering herbalism mining tailoring,nefield=Profession1"`
+		WeeklyHours *int    `json:"weeklyHours" validate:"gt=0,lt=51"`
 	}
 )
 
