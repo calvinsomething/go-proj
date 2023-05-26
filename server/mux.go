@@ -67,7 +67,7 @@ func (m *mux) ListenAndServe(addr string) error {
 	for k, v := range m.routes {
 		// all unassigned request methods should return status 405
 		for _, h := range []*http.HandlerFunc{&v.get, &v.put, &v.post, &v.delete} {
-			if h == nil {
+			if *h == nil {
 				*h = invalidMethod
 			}
 		}
